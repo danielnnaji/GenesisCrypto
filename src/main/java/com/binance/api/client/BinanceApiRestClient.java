@@ -150,6 +150,13 @@ public interface BinanceApiRestClient {
   TickerPrice getPrice(String symbol);
 
   /**
+   * Get latest avg price for <code>symbol</code>.
+   *
+   * @param symbol ticker symbol (e.g. ETHBTC)
+   */
+  TickerPrice getAvgPrice(String symbol);
+
+  /**
    * Get best price/qty on the order book for all symbols.
    */
   List<BookTicker> getBookTickers();

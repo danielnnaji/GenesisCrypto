@@ -92,12 +92,17 @@ public class BinanceApiRestClientImpl implements BinanceApiRestClient {
 
   @Override
   public List<TickerStatistics> getAll24HrPriceStatistics() {
-	return 	executeSync(binanceApiService.getAll24HrPriceStatistics());
+    return 	executeSync(binanceApiService.getAll24HrPriceStatistics());
   }
 
   @Override
   public TickerPrice getPrice(String symbol) {
-	  return executeSync(binanceApiService.getLatestPrice(symbol));
+    return executeSync(binanceApiService.getLatestPrice(symbol));
+  }
+
+  @Override
+  public TickerPrice getAvgPrice(String symbol) {
+    return executeSync(binanceApiService.getAvgPrice(symbol));
   }
 
   @Override
@@ -115,14 +120,14 @@ public class BinanceApiRestClientImpl implements BinanceApiRestClient {
     final Call<NewOrderResponse> call;
     if (order.getQuoteOrderQty() == null) {
       call = binanceApiService.newOrder(order.getSymbol(), order.getSide(), order.getType(),
-          order.getTimeInForce(), order.getQuantity(), order.getPrice(),
-          order.getNewClientOrderId(), order.getStopPrice(), order.getIcebergQty(), order.getNewOrderRespType(),
-          order.getRecvWindow(), order.getTimestamp());
+              order.getTimeInForce(), order.getQuantity(), order.getPrice(),
+              order.getNewClientOrderId(), order.getStopPrice(), order.getIcebergQty(), order.getNewOrderRespType(),
+              order.getRecvWindow(), order.getTimestamp());
     } else {
       call = binanceApiService.newOrderQuoteQty(order.getSymbol(), order.getSide(), order.getType(),
-          order.getTimeInForce(), order.getQuoteOrderQty(), order.getPrice(),
-          order.getNewClientOrderId(), order.getStopPrice(), order.getIcebergQty(), order.getNewOrderRespType(),
-          order.getRecvWindow(), order.getTimestamp());
+              order.getTimeInForce(), order.getQuoteOrderQty(), order.getPrice(),
+              order.getNewClientOrderId(), order.getStopPrice(), order.getIcebergQty(), order.getNewOrderRespType(),
+              order.getRecvWindow(), order.getTimestamp());
     }
     return executeSync(call);
   }
@@ -130,8 +135,8 @@ public class BinanceApiRestClientImpl implements BinanceApiRestClient {
   @Override
   public void newOrderTest(NewOrder order) {
     executeSync(binanceApiService.newOrderTest(order.getSymbol(), order.getSide(), order.getType(),
-        order.getTimeInForce(), order.getQuantity(), order.getPrice(), order.getNewClientOrderId(), order.getStopPrice(),
-        order.getIcebergQty(), order.getNewOrderRespType(), order.getRecvWindow(), order.getTimestamp()));
+            order.getTimeInForce(), order.getQuantity(), order.getPrice(), order.getNewClientOrderId(), order.getStopPrice(),
+            order.getIcebergQty(), order.getNewOrderRespType(), order.getRecvWindow(), order.getTimestamp()));
   }
 
   // Account endpoints
@@ -139,15 +144,15 @@ public class BinanceApiRestClientImpl implements BinanceApiRestClient {
   @Override
   public Order getOrderStatus(OrderStatusRequest orderStatusRequest) {
     return executeSync(binanceApiService.getOrderStatus(orderStatusRequest.getSymbol(),
-        orderStatusRequest.getOrderId(), orderStatusRequest.getOrigClientOrderId(),
-        orderStatusRequest.getRecvWindow(), orderStatusRequest.getTimestamp()));
+            orderStatusRequest.getOrderId(), orderStatusRequest.getOrigClientOrderId(),
+            orderStatusRequest.getRecvWindow(), orderStatusRequest.getTimestamp()));
   }
 
   @Override
   public CancelOrderResponse cancelOrder(CancelOrderRequest cancelOrderRequest) {
     return executeSync(binanceApiService.cancelOrder(cancelOrderRequest.getSymbol(),
-        cancelOrderRequest.getOrderId(), cancelOrderRequest.getOrigClientOrderId(), cancelOrderRequest.getNewClientOrderId(),
-        cancelOrderRequest.getRecvWindow(), cancelOrderRequest.getTimestamp()));
+            cancelOrderRequest.getOrderId(), cancelOrderRequest.getOrigClientOrderId(), cancelOrderRequest.getNewClientOrderId(),
+            cancelOrderRequest.getRecvWindow(), cancelOrderRequest.getTimestamp()));
   }
 
   @Override
@@ -158,8 +163,8 @@ public class BinanceApiRestClientImpl implements BinanceApiRestClient {
   @Override
   public List<Order> getAllOrders(AllOrdersRequest orderRequest) {
     return executeSync(binanceApiService.getAllOrders(orderRequest.getSymbol(),
-        orderRequest.getOrderId(), orderRequest.getLimit(),
-        orderRequest.getRecvWindow(), orderRequest.getTimestamp()));
+            orderRequest.getOrderId(), orderRequest.getLimit(),
+            orderRequest.getRecvWindow(), orderRequest.getTimestamp()));
   }
 
   @Override

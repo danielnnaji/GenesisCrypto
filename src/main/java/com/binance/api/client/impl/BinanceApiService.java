@@ -73,7 +73,7 @@ public interface BinanceApiService {
 
   @GET("/api/v1/klines")
   Call<List<Candlestick>> getCandlestickBars(@Query("symbol") String symbol, @Query("interval") String interval, @Query("limit") Integer limit,
-                                       @Query("startTime") Long startTime, @Query("endTime") Long endTime);
+                                             @Query("startTime") Long startTime, @Query("endTime") Long endTime);
 
   @GET("/api/v1/ticker/24hr")
   Call<TickerStatistics> get24HrPriceStatistics(@Query("symbol") String symbol);
@@ -86,6 +86,9 @@ public interface BinanceApiService {
 
   @GET("/api/v3/ticker/price")
   Call<TickerPrice> getLatestPrice(@Query("symbol") String symbol);
+
+  @GET("/api/v3/avgPrice")
+  Call<TickerPrice> getAvgPrice(@Query("symbol") String symbol);
 
   @GET("/api/v1/ticker/allBookTickers")
   Call<List<BookTicker>> getBookTickers();
@@ -103,10 +106,10 @@ public interface BinanceApiService {
   @Headers(BinanceApiConstants.ENDPOINT_SECURITY_TYPE_SIGNED_HEADER)
   @POST("/api/v3/order")
   Call<NewOrderResponse> newOrderQuoteQty(@Query("symbol") String symbol, @Query("side") OrderSide side, @Query("type") OrderType type,
-                                  @Query("timeInForce") TimeInForce timeInForce, @Query("quoteOrderQty") String quoteOrderQty, @Query("price") String price,
-                                  @Query("newClientOrderId") String newClientOrderId, @Query("stopPrice") String stopPrice,
-                                  @Query("icebergQty") String icebergQty, @Query("newOrderRespType") NewOrderResponseType newOrderRespType,
-                                  @Query("recvWindow") Long recvWindow, @Query("timestamp") Long timestamp);
+                                          @Query("timeInForce") TimeInForce timeInForce, @Query("quoteOrderQty") String quoteOrderQty, @Query("price") String price,
+                                          @Query("newClientOrderId") String newClientOrderId, @Query("stopPrice") String stopPrice,
+                                          @Query("icebergQty") String icebergQty, @Query("newOrderRespType") NewOrderResponseType newOrderRespType,
+                                          @Query("recvWindow") Long recvWindow, @Query("timestamp") Long timestamp);
 
   @Headers(BinanceApiConstants.ENDPOINT_SECURITY_TYPE_SIGNED_HEADER)
   @POST("/api/v3/order/test")
@@ -119,8 +122,8 @@ public interface BinanceApiService {
   @Headers(BinanceApiConstants.ENDPOINT_SECURITY_TYPE_SIGNED_HEADER)
   @GET("/api/v3/order")
   Call<Order> getOrderStatus(@Query("symbol") String symbol, @Query("orderId") Long orderId,
-                                    @Query("origClientOrderId") String origClientOrderId, @Query("recvWindow") Long recvWindow,
-                                    @Query("timestamp") Long timestamp);
+                             @Query("origClientOrderId") String origClientOrderId, @Query("recvWindow") Long recvWindow,
+                             @Query("timestamp") Long timestamp);
 
   @Headers(BinanceApiConstants.ENDPOINT_SECURITY_TYPE_SIGNED_HEADER)
   @DELETE("/api/v3/order")
