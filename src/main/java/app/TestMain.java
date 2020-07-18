@@ -1,5 +1,6 @@
 package app;
 
+import app.db.DataSourcer;
 import com.binance.api.client.BinanceApiClientFactory;
 import com.binance.api.client.BinanceApiRestClient;
 import com.binance.api.client.domain.OrderSide;
@@ -9,13 +10,13 @@ import com.binance.api.client.domain.account.NewOrderResponse;
 import com.binance.api.client.domain.account.NewOrderResponseType;
 import com.binance.api.client.domain.account.Order;
 import com.binance.api.client.domain.account.request.OrderStatusRequest;
+import com.binance.api.client.domain.market.Candlestick;
+import com.binance.api.client.domain.market.CandlestickInterval;
 import com.binance.api.client.domain.market.TickerPrice;
 
 import java.math.BigDecimal;
 import java.math.RoundingMode;
-import java.util.List;
-import java.util.Timer;
-import java.util.TimerTask;
+import java.util.*;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.logging.Logger;
 import java.util.stream.Collectors;
@@ -25,25 +26,57 @@ import static com.binance.api.client.domain.account.NewOrder.*;
 public class TestMain {
 
     private final static Logger LOG = Logger.getLogger(TestMain.class.getName());
-    private final static long POLLING_TIME = 10000L; // 10 sec
+    private final static long POLLING_TIME = 30000L; // 30 sec in Milliseconds
+    private static long lastOpenTime = 0L;
+    private static boolean updatedOrders = false;
 
-    public static void main(String[] args) {
-        String APIKEY = "dZ5leU4Xs3zXHeHM8RLD058rpV1wI4MiUgXJDgmb2no38LrReoikShE09qqEIhc8";
-        String SEC_KEY = "PWtdC42BDq4su8yn0uApJLiiNaCv0uIcA2UPv0vh0VTbar3Hyy09DBsvfSjbhHcm";
+    public static void main(String[] args) throws Exception{
+        Properties properties = parseProgramArgs(args);
+        String APIKEY = properties.getProperty("APIKEY");
+        String SEC_KEY = properties.getProperty("SEC_KEY");
         BinanceApiClientFactory factory = BinanceApiClientFactory.newInstance(APIKEY, SEC_KEY);
         BinanceApiRestClient client = factory.newRestClient();
         ConcurrentHashMap<Long, NewOrderResponse> workingOrdersMap = new ConcurrentHashMap<>();
 
 
-
-        // BUY
-        buy(client, workingOrdersMap);
+        workingOrdersMap = getWorkingOrdersInDB(workingOrdersMap);
 
         sell(client, workingOrdersMap);
+        updateWorkingOrders(client, workingOrdersMap);
+
+        buy(client, workingOrdersMap);
+        updateWorkingOrders(client, workingOrdersMap);
+
+        updateWorkingOrdersInDB(workingOrdersMap);
 
         scheduler(client, workingOrdersMap);
 
+    }
 
+    private static Properties parseProgramArgs(String[]args){
+        Properties properties = new Properties();
+        for(String arg : args){
+            String key = arg.split("=")[0];
+            String value = arg.split("=")[1];
+            properties.setProperty(key, value);
+        }
+        return properties;
+    }
+    private static ConcurrentHashMap<Long, NewOrderResponse> getWorkingOrdersInDB(ConcurrentHashMap<Long, NewOrderResponse> workingOrdersMap) throws Exception {
+        DataSourcer dataSourcer = new DataSourcer();
+        workingOrdersMap = dataSourcer.sourceData();
+        LOG.info("Got " + workingOrdersMap.size() + " orders from DB\n");
+        LOG.info(workingOrdersMap.values().toString());
+        return workingOrdersMap;
+    }
+
+    private static void updateWorkingOrdersInDB(ConcurrentHashMap<Long, NewOrderResponse> workingOrdersMap) throws Exception {
+        if(updatedOrders) {
+            DataSourcer dataSourcer = new DataSourcer();
+            dataSourcer.updateWorkingOrdersTable(workingOrdersMap);
+            LOG.info("Updated orders in DB...\n");
+            updatedOrders = false;
+        }
     }
 
     private static void scheduler(BinanceApiRestClient client, ConcurrentHashMap<Long, NewOrderResponse> workingOrdersMap) {
@@ -55,6 +88,8 @@ public class TestMain {
                 tryUpdate(client, workingOrdersMap);
                 trySell(client, workingOrdersMap);
                 tryUpdate(client, workingOrdersMap);
+                tryUpdateWorkingOrdersInDB(workingOrdersMap);
+
             }
         }, POLLING_TIME, POLLING_TIME);
     }
@@ -85,14 +120,26 @@ public class TestMain {
         }
     }
 
+    private static void tryUpdateWorkingOrdersInDB(ConcurrentHashMap<Long, NewOrderResponse> workingOrdersMap){
+        try{
+            updateWorkingOrdersInDB(workingOrdersMap);
+        }catch (Exception e){
+            LOG.warning("UNABLE TO UPDATE DB\n" + e);
+        }
+    }
     public static Double getAvgPx(BinanceApiRestClient client) {
         TickerPrice ap = client.getAvgPrice("BTCBUSD");
-        return Double.valueOf(ap.getPrice());
+        return Double.parseDouble(ap.getPrice());
     }
 
     public static Double getCurrPx(BinanceApiRestClient client) {
         TickerPrice cp = client.getPrice("BTCBUSD");
-        return Double.valueOf(cp.getPrice());
+        return Double.parseDouble(cp.getPrice());
+    }
+
+    public static Candlestick getCandleStick(BinanceApiRestClient client){
+        int limit = 1;
+        return client.getCandlestickBars("BTCBUSD", CandlestickInterval.HOURLY, limit).get(0);
     }
 
     private static double round(double value, int places) {
@@ -105,40 +152,56 @@ public class TestMain {
 
     private static void buy(BinanceApiRestClient client, ConcurrentHashMap<Long, NewOrderResponse> workingOrdersMap) {
         List<NewOrderResponse> workingBuyOrders = workingOrdersMap.values().stream().filter(x -> x.getSide() == OrderSide.BUY).collect(Collectors.toList());
+//        List<NewOrderResponse> workingBuyOrders = workingOrdersMap.values().stream().filter(x -> ((x.getSide() == OrderSide.BUY) && (x.getStatus() == OrderStatus.NEW))).collect(Collectors.toList());
+
 
         double avgPx = 0;
-        int threshold = 5;
+        int threshold = 13;
         for(NewOrderResponse workingBuyOrder : workingBuyOrders){
-            avgPx += Double.valueOf(workingBuyOrder.getPrice());
+            avgPx += Double.parseDouble(workingBuyOrder.getPrice());
         }
         avgPx = avgPx / workingBuyOrders.size();
-        avgPx = avgPx - (avgPx * 0.03);
+        avgPx = avgPx - (avgPx * 0.015);
 
-        double ap = getAvgPx(client);
+        Candlestick candlestick = getCandleStick(client);
+        //Cache Stuff
+        long openTime = candlestick.getOpenTime();
+//        double open = Double.parseDouble(candlestick.getOpen());
+//        double high = Double.parseDouble(candlestick.getHigh());
+        double low = Double.parseDouble(candlestick.getLow());
+
+//        if(lastOpenTime != openTime)
+
+
+        ///
+
+//        double ap = getAvgPx(client);
         double cp = getCurrPx(client);
 
-        if(workingBuyOrders.size() < threshold || cp < avgPx) {
+        if(((lastOpenTime != openTime) && (workingBuyOrders.size() < threshold)) || (cp < avgPx)) {
 
-            if (cp > ap) {
-                double qty = (5000 / 450.0);
-                qty = qty / cp;
-
-                qty = round(qty, 6);
-
-                NewOrderResponse newOrderResponse = client.newOrder(limitBuy("BTCBUSD", TimeInForce.FOK, String.valueOf(qty), String.valueOf(cp)).newOrderRespType(NewOrderResponseType.FULL));
-                OrderStatus orderStatus = newOrderResponse.getStatus();
-                if (orderStatus != OrderStatus.REJECTED
-                        && orderStatus != OrderStatus.CANCELED
-                        && orderStatus != OrderStatus.EXPIRED
-                        && orderStatus != OrderStatus.PENDING_CANCEL) {
-
-                    long orderId = newOrderResponse.getOrderId();
-                    workingOrdersMap.put(orderId, newOrderResponse); // Add new order to working orders map
-                    LOG.info("BOUGHT!!!\n" + newOrderResponse.toString() + "\n");
-                }
-
+            if(low < cp){
+                cp = low;
             }
+//            if (cp > ap) {
+            double qty = (5000 / 450.0);
+            qty = qty / cp;
+            qty = round(qty, 6);
+            NewOrderResponse newOrderResponse = client.newOrder(limitBuy("BTCBUSD", TimeInForce.GTC, String.valueOf(qty), String.valueOf(cp)).newOrderRespType(NewOrderResponseType.FULL));
+            OrderStatus orderStatus = newOrderResponse.getStatus();
+            if (orderStatus != OrderStatus.REJECTED
+                    && orderStatus != OrderStatus.CANCELED
+                    && orderStatus != OrderStatus.EXPIRED
+                    && orderStatus != OrderStatus.PENDING_CANCEL) {
+                long orderId = newOrderResponse.getOrderId();
+                workingOrdersMap.put(orderId, newOrderResponse); // Add new order to working orders map
+                LOG.info("BOUGHT!!!\n" + newOrderResponse.toString() + "\n");
+                updatedOrders = true;
+            }
+
+//            }
         }
+        lastOpenTime = openTime;
     }
 
 
@@ -158,6 +221,7 @@ public class TestMain {
                 LOG.info("Updating working order: " + workingOrder.toString() + "\n" + "To: " + order.toString());
                 workingOrder.setStatus(order.getStatus());
                 workingOrder.setExecutedQty(order.getExecutedQty());
+                updatedOrders = true;
             }
         }
     }
@@ -166,8 +230,8 @@ public class TestMain {
         for (NewOrderResponse workingOrder : workingOrdersMap.values()) {
             if (workingOrder.getSide() == OrderSide.BUY && (workingOrder.getStatus() == OrderStatus.FILLED || workingOrder.getStatus() == OrderStatus.PARTIALLY_FILLED)) {
                 double cp = getCurrPx(client);
-                double workingOrderCurrPx = Double.valueOf(workingOrder.getPrice());
-                double buffer = 0.015;
+                double workingOrderCurrPx = Double.parseDouble(workingOrder.getPrice());
+                double buffer = 0.02;
 
                 if (cp > (workingOrderCurrPx + (workingOrderCurrPx * buffer))) {
                     String qty = workingOrder.getExecutedQty();
@@ -185,6 +249,7 @@ public class TestMain {
                         workingOrdersMap.put(orderId, newOrderResponse); // Add new order to working orders map
                         workingOrdersMap.remove(workingOrder.getOrderId()); // Remove
                         LOG.info("SOLD!!!\n" + newOrderResponse.toString() + "\n");
+                        updatedOrders = true;
                     }
 
                 }

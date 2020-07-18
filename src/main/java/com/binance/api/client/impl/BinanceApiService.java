@@ -71,7 +71,7 @@ public interface BinanceApiService {
   Call<List<AggTrade>> getAggTrades(@Query("symbol") String symbol, @Query("fromId") String fromId, @Query("limit") Integer limit,
                                     @Query("startTime") Long startTime, @Query("endTime") Long endTime);
 
-  @GET("/api/v1/klines")
+  @GET("/api/v3/klines")
   Call<List<Candlestick>> getCandlestickBars(@Query("symbol") String symbol, @Query("interval") String interval, @Query("limit") Integer limit,
                                              @Query("startTime") Long startTime, @Query("endTime") Long endTime);
 

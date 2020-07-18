@@ -1,5 +1,6 @@
 package com.binance.api.client.domain.account;
 
+import app.db.ResultBean;
 import com.binance.api.client.constant.BinanceApiConstants;
 import com.binance.api.client.domain.OrderSide;
 import com.binance.api.client.domain.OrderStatus;
@@ -8,6 +9,8 @@ import com.binance.api.client.domain.TimeInForce;
 import com.fasterxml.jackson.annotation.JsonIgnoreProperties;
 import org.apache.commons.lang3.builder.ToStringBuilder;
 
+import java.sql.ResultSet;
+import java.sql.SQLException;
 import java.util.Collections;
 import java.util.List;
 import java.util.Optional;
@@ -19,7 +22,7 @@ import java.util.stream.Collectors;
  * @see NewOrder for the request
  */
 @JsonIgnoreProperties(ignoreUnknown = true)
-public class NewOrderResponse {
+public class NewOrderResponse extends ResultBean {
 
   /**
    * Order symbol.
@@ -185,4 +188,28 @@ public class NewOrderResponse {
             .collect(Collectors.joining(", ")))
         .toString();
   }
+
+  @Override
+  public void hydrateBean(ResultSet rs) throws SQLException {
+    setSymbol(rs.getString("symbol"));
+    setOrderId(Long.parseLong(rs.getString("orderId")));
+    setClientOrderId(rs.getString("clientOrderId"));
+    setSide(OrderSide.valueOf(rs.getString("side")));
+    setPrice(String.valueOf(rs.getDouble("price")));
+    setOrigQty(rs.getString("origQty"));
+    setExecutedQty(rs.getString("executedQty"));
+    setStatus(OrderStatus.valueOf(rs.getString("orderStatus")));
+    setTimeInForce(TimeInForce.valueOf(rs.getString("timeInForce")));
+    setType(OrderType.valueOf(rs.getString("orderType")));
+    setTransactTime(Long.parseLong(rs.getString("transactTime")));
+  }
+
+  public String getInsertStatement() {
+    return "INSERT INTO WorkingOrder " +
+            "VALUES ('" + getSymbol() + "', '" + getOrderId().toString() + "', '" + getClientOrderId() + "', '" + getSide().toString() +
+            "', " + Double.parseDouble(getPrice()) + ", " + Double.parseDouble(getOrigQty()) + ", " + Double.parseDouble(getExecutedQty()) + ", '" + getStatus().toString() +
+            "', '" + getTimeInForce().toString() + "', '" + getType().toString() + "', '" + getTransactTime().toString() + "')" +
+            "\n";
+  }
+
 }
