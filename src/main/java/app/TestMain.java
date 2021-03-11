@@ -26,7 +26,7 @@ import static com.binance.api.client.domain.account.NewOrder.*;
 public class TestMain {
 
     private final static Logger LOG = Logger.getLogger(TestMain.class.getName());
-    private final static long POLLING_TIME = 30000L; // 30 sec in Milliseconds
+    private final static long POLLING_TIME = 3600000L; // 1hr //30000L; // 30 sec in Milliseconds
     private static long lastOpenTime = 0L;
     private static boolean updatedOrders = false;
 
@@ -39,17 +39,25 @@ public class TestMain {
         ConcurrentHashMap<Long, NewOrderResponse> workingOrdersMap = new ConcurrentHashMap<>();
 
 
-        workingOrdersMap = getWorkingOrdersInDB(workingOrdersMap);
 
-        sell(client, workingOrdersMap);
-        updateWorkingOrders(client, workingOrdersMap);
+//        workingOrdersMap = getWorkingOrdersInDB(workingOrdersMap);
+//
+//        sell(client, workingOrdersMap);
+//        updateWorkingOrders(client, workingOrdersMap);
+//
+//        //buy(client, workingOrdersMap);
+//        //updateWorkingOrders(client, workingOrdersMap);
+//
+//        updateWorkingOrdersInDB(workingOrdersMap);
 
-        buy(client, workingOrdersMap);
-        updateWorkingOrders(client, workingOrdersMap);
-
-        updateWorkingOrdersInDB(workingOrdersMap);
-
+        divest(client);
         scheduler(client, workingOrdersMap);
+
+        LOG.info("\n" +
+              "************************************\n" +
+                " GENESIS CRYPTO TRADER IS ONLINE...\n" +
+                "************************************\n"
+        );
 
     }
 
@@ -84,11 +92,12 @@ public class TestMain {
         timer.scheduleAtFixedRate(new TimerTask() {
             @Override
             public void run() {
-                tryBuy(client, workingOrdersMap);
-                tryUpdate(client, workingOrdersMap);
-                trySell(client, workingOrdersMap);
-                tryUpdate(client, workingOrdersMap);
-                tryUpdateWorkingOrdersInDB(workingOrdersMap);
+                //tryBuy(client, workingOrdersMap);
+                //tryUpdate(client, workingOrdersMap);
+//                trySell(client, workingOrdersMap);
+//                tryUpdate(client, workingOrdersMap);
+//                tryUpdateWorkingOrdersInDB(workingOrdersMap);
+                divest(client);
 
             }
         }, POLLING_TIME, POLLING_TIME);
@@ -133,7 +142,7 @@ public class TestMain {
     }
 
     public static Double getCurrPx(BinanceApiRestClient client) {
-        TickerPrice cp = client.getPrice("BTCBUSD");
+        TickerPrice cp = client.getPrice("LTCBUSD");
         return Double.parseDouble(cp.getPrice());
     }
 
@@ -254,6 +263,18 @@ public class TestMain {
 
                 }
             }
+        }
+    }
+
+    private static void divest(BinanceApiRestClient client) {
+        double currPx = getCurrPx(client), threshold = 200, target = 10, qty = 0;
+
+        if(currPx >= threshold) {
+            qty = target / currPx;
+            NewOrderResponse newOrderResponse = client.newOrder(
+                    limitSell("symbol", TimeInForce.GTC, String.valueOf(qty), String.valueOf(currPx))
+                            .newOrderRespType(NewOrderResponseType.FULL));
+            LOG.info("** SELL **\n" + newOrderResponse.toString() + "\n");
         }
     }
 }
