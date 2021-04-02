@@ -1,5 +1,3 @@
-package app;
-
 import app.db.DataSourcer;
 import com.binance.api.client.BinanceApiClientFactory;
 import com.binance.api.client.BinanceApiRestClient;
@@ -32,8 +30,8 @@ public class TestMain {
 
     public static void main(String[] args) throws Exception{
         Properties properties = parseProgramArgs(args);
-        String APIKEY = properties.getProperty("APIKEY");
-        String SEC_KEY = properties.getProperty("SEC_KEY");
+        String APIKEY = "vFP09RtBgJ74kXrZ6h66LqtQTJTj3QwMhYEW5zgboC5I33vkRwpGAPZG3WAoH3Hf";//properties.getProperty("APIKEY");
+        String SEC_KEY = "pG15M927ya0ashxAwEvl2pIhBFAVyY9VDkE9v3kYwykLUAxd0Cp2cw4Md3cZ0NQ3";//properties.getProperty("SEC_KEY");
         BinanceApiClientFactory factory = BinanceApiClientFactory.newInstance(APIKEY, SEC_KEY);
         BinanceApiRestClient client = factory.newRestClient();
         ConcurrentHashMap<Long, NewOrderResponse> workingOrdersMap = new ConcurrentHashMap<>();
@@ -141,8 +139,8 @@ public class TestMain {
         return Double.parseDouble(ap.getPrice());
     }
 
-    public static Double getCurrPx(BinanceApiRestClient client) {
-        TickerPrice cp = client.getPrice("LTCBUSD");
+    public static Double getCurrPx(BinanceApiRestClient client, String symbol) {
+        TickerPrice cp = client.getPrice(symbol);
         return Double.parseDouble(cp.getPrice());
     }
 
@@ -185,7 +183,7 @@ public class TestMain {
         ///
 
 //        double ap = getAvgPx(client);
-        double cp = getCurrPx(client);
+        double cp = getCurrPx(client, "BTCBUSD");
 
         if(((lastOpenTime != openTime) && (workingBuyOrders.size() < threshold)) || (cp < avgPx)) {
 
@@ -238,7 +236,7 @@ public class TestMain {
     private static void sell(BinanceApiRestClient client, ConcurrentHashMap<Long, NewOrderResponse> workingOrdersMap) {
         for (NewOrderResponse workingOrder : workingOrdersMap.values()) {
             if (workingOrder.getSide() == OrderSide.BUY && (workingOrder.getStatus() == OrderStatus.FILLED || workingOrder.getStatus() == OrderStatus.PARTIALLY_FILLED)) {
-                double cp = getCurrPx(client);
+                double cp = getCurrPx(client, "BTCBUSD");
                 double workingOrderCurrPx = Double.parseDouble(workingOrder.getPrice());
                 double buffer = 0.02;
 
@@ -267,14 +265,43 @@ public class TestMain {
     }
 
     private static void divest(BinanceApiRestClient client) {
-        double currPx = getCurrPx(client), threshold = 200, target = 10, qty = 0;
+        try {
 
-        if(currPx >= threshold) {
-            qty = target / currPx;
-            NewOrderResponse newOrderResponse = client.newOrder(
-                    limitSell("symbol", TimeInForce.GTC, String.valueOf(qty), String.valueOf(currPx))
-                            .newOrderRespType(NewOrderResponseType.FULL));
-            LOG.info("** SELL **\n" + newOrderResponse.toString() + "\n");
+        double ltcCurrPx = getCurrPx(client, "LTCBUSD"), ltcThreshold = 210, ltcTarget = 10.3, qty = 0,
+               ethCurrPx = getCurrPx(client, "ETHBUSD"), ethThreshold = 2000, ethTarget = 10.3,
+               bnbCurrPx = getCurrPx(client, "BNBBUSD"), bnbThreshold = 330, bnbTarget = 10.3;
+
+
+            //LTC
+            if (ltcCurrPx >= ltcThreshold) {
+                qty = round((ltcTarget / ltcCurrPx), 5);
+                NewOrderResponse newOrderResponse = client.newOrder(
+                        limitSell("LTCBUSD", TimeInForce.GTC, String.valueOf(qty), String.valueOf(ltcCurrPx))
+                                .newOrderRespType(NewOrderResponseType.FULL));
+                LOG.info("** SELL **\n" + newOrderResponse.toString() + "\n");
+            }
+
+            //ETH
+            if (ethCurrPx >= ethThreshold) {
+                qty = round((ethTarget / ethCurrPx), 5);
+                NewOrderResponse newOrderResponse = client.newOrder(
+                        limitSell("ETHBUSD", TimeInForce.GTC, String.valueOf(qty), String.valueOf(ethCurrPx))
+                                .newOrderRespType(NewOrderResponseType.FULL));
+                LOG.info("** SELL **\n" + newOrderResponse.toString() + "\n");
+            }
+
+            //BNB
+            if (bnbCurrPx >= bnbThreshold) {
+                qty = round((bnbTarget / bnbCurrPx), 5);
+                NewOrderResponse newOrderResponse = client.newOrder(
+                        limitSell("BNBBUSD", TimeInForce.GTC, String.valueOf(qty), String.valueOf(bnbCurrPx))
+                                .newOrderRespType(NewOrderResponseType.FULL));
+                LOG.info("** SELL **\n" + newOrderResponse.toString() + "\n");
+            }
+        }
+
+        catch (Exception e){
+            LOG.warning(e.getMessage());
         }
     }
 }

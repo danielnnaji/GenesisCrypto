@@ -77,7 +77,7 @@
         <configuration>
           <archive>
             <manifest>
-              <mainClass>Atlas</mainClass>
+              <mainClass>TestMain</mainClass>
             </manifest>
           </archive>
           <descriptorRefs>
