@@ -267,9 +267,9 @@ public class TestMain {
     private static void divest(BinanceApiRestClient client) {
         try {
 
-        double ltcCurrPx = getCurrPx(client, "LTCBUSD"), ltcThreshold = 210, ltcTarget = 10.3, qty = 0,
-               ethCurrPx = getCurrPx(client, "ETHBUSD"), ethThreshold = 2000, ethTarget = 10.3,
-               bnbCurrPx = getCurrPx(client, "BNBBUSD"), bnbThreshold = 330, bnbTarget = 10.3;
+        double ltcCurrPx = getCurrPx(client, "LTCBUSD"), ltcThreshold = 300, ltcTarget = 10.2, qty = 0,
+//               ethCurrPx = getCurrPx(client, "ETHBUSD"), ethThreshold = 2000, ethTarget = 10.5,
+               bnbCurrPx = getCurrPx(client, "BNBBUSD"), bnbThreshold = 550, bnbTarget = 10.2;
 
 
             //LTC
@@ -282,17 +282,17 @@ public class TestMain {
             }
 
             //ETH
-            if (ethCurrPx >= ethThreshold) {
-                qty = round((ethTarget / ethCurrPx), 5);
-                NewOrderResponse newOrderResponse = client.newOrder(
-                        limitSell("ETHBUSD", TimeInForce.GTC, String.valueOf(qty), String.valueOf(ethCurrPx))
-                                .newOrderRespType(NewOrderResponseType.FULL));
-                LOG.info("** SELL **\n" + newOrderResponse.toString() + "\n");
-            }
+//            if (ethCurrPx >= ethThreshold) {
+//                qty = round((ethTarget / ethCurrPx), 5);
+//                NewOrderResponse newOrderResponse = client.newOrder(
+//                        limitSell("ETHBUSD", TimeInForce.GTC, String.valueOf(qty), String.valueOf(ethCurrPx))
+//                                .newOrderRespType(NewOrderResponseType.FULL));
+//                LOG.info("** SELL **\n" + newOrderResponse.toString() + "\n");
+//            }
 
             //BNB
             if (bnbCurrPx >= bnbThreshold) {
-                qty = round((bnbTarget / bnbCurrPx), 5);
+                qty = round((bnbTarget / bnbCurrPx), 3);
                 NewOrderResponse newOrderResponse = client.newOrder(
                         limitSell("BNBBUSD", TimeInForce.GTC, String.valueOf(qty), String.valueOf(bnbCurrPx))
                                 .newOrderRespType(NewOrderResponseType.FULL));
