@@ -30,8 +30,9 @@ public class TestMain {
 
     public static void main(String[] args) throws Exception{
         Properties properties = parseProgramArgs(args);
-        String APIKEY = "vFP09RtBgJ74kXrZ6h66LqtQTJTj3QwMhYEW5zgboC5I33vkRwpGAPZG3WAoH3Hf";//properties.getProperty("APIKEY");
-        String SEC_KEY = "pG15M927ya0ashxAwEvl2pIhBFAVyY9VDkE9v3kYwykLUAxd0Cp2cw4Md3cZ0NQ3";//properties.getProperty("SEC_KEY");
+        String APIKEY = properties.getProperty("APIKEY");
+        String SEC_KEY = properties.getProperty("SEC_KEY");
+
         BinanceApiClientFactory factory = BinanceApiClientFactory.newInstance(APIKEY, SEC_KEY);
         BinanceApiRestClient client = factory.newRestClient();
         ConcurrentHashMap<Long, NewOrderResponse> workingOrdersMap = new ConcurrentHashMap<>();
@@ -48,7 +49,9 @@ public class TestMain {
 //
 //        updateWorkingOrdersInDB(workingOrdersMap);
 
-        divest(client);
+//        divest(client);
+
+        invest(client);
         scheduler(client, workingOrdersMap);
 
         LOG.info("\n" +
@@ -95,7 +98,9 @@ public class TestMain {
 //                trySell(client, workingOrdersMap);
 //                tryUpdate(client, workingOrdersMap);
 //                tryUpdateWorkingOrdersInDB(workingOrdersMap);
-                divest(client);
+//                divest(client);
+
+                invest(client);
 
             }
         }, POLLING_TIME, POLLING_TIME);
@@ -267,9 +272,10 @@ public class TestMain {
     private static void divest(BinanceApiRestClient client) {
         try {
 
-        double ltcCurrPx = getCurrPx(client, "LTCBUSD"), ltcThreshold = 300, ltcTarget = 10.2, qty = 0,
+        double qty = 0,
+                ltcCurrPx = getCurrPx(client, "LTCBUSD"), ltcThreshold = 500, ltcTarget = 10.2,
 //               ethCurrPx = getCurrPx(client, "ETHBUSD"), ethThreshold = 2000, ethTarget = 10.5,
-               bnbCurrPx = getCurrPx(client, "BNBBUSD"), bnbThreshold = 550, bnbTarget = 10.2;
+               bnbCurrPx = getCurrPx(client, "BNBBUSD"), bnbThreshold = 600, bnbTarget = 10.2;
 
 
             //LTC
@@ -300,6 +306,42 @@ public class TestMain {
             }
         }
 
+        catch (Exception e){
+            LOG.warning(e.getMessage());
+        }
+    }
+
+    private static void invest(BinanceApiRestClient client) {
+
+        // eth, ada, dot, link, matic
+
+        double qty = 0,
+                adaCurrPx = getCurrPx(client, "ADABUSD"), adaThreshold = 1.15, adaBudget = 10.2,
+                dotCurrPx = getCurrPx(client, "DOTBUSD"), dotThreshold = 18, dotBudget = 10.2,
+                linkCurrPx = getCurrPx(client, "LINKBUSD"), linkThreshold = 18, linkBudget = 10.2,
+                maticCurrPx = getCurrPx(client, "MATICBUSD"), maticThreshold = 0.9, maticBudget = 10.2;
+
+
+            //ADA
+        buy("ADABUSD", adaCurrPx, adaThreshold, adaBudget, client, 2);
+        buy("DOTBUSD", dotCurrPx, dotThreshold, dotBudget, client, 3);
+        buy("LINKBUSD", linkCurrPx, linkThreshold, linkBudget, client, 3);
+        buy("MATICBUSD", maticCurrPx, maticThreshold, maticBudget, client, 1);
+
+
+
+    }
+
+    private static void buy(String symbol, double currPx, double threshold, double tradeBudget, BinanceApiRestClient client, int decimalPlaces){
+        try {
+            if (currPx <= threshold) {
+                double qty = round((tradeBudget / currPx), decimalPlaces);
+                NewOrderResponse newOrderResponse = client.newOrder(
+                        limitBuy(symbol, TimeInForce.GTC, String.valueOf(qty), String.valueOf(currPx))
+                                .newOrderRespType(NewOrderResponseType.FULL));
+                LOG.info("** BUY **\n" + newOrderResponse.toString() + "\n");
+            }
+        }
         catch (Exception e){
             LOG.warning(e.getMessage());
         }
